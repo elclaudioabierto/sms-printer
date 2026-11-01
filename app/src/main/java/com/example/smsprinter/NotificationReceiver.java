@@ -25,8 +25,20 @@ public final class NotificationReceiver extends NotificationListenerService {
         if (content == null || content.length() == 0) content = extras == null ? null : extras.getCharSequence(Notification.EXTRA_TEXT);
         String app = posted.getPackageName();
         try { PackageManager pm = getPackageManager(); app = pm.getApplicationLabel(pm.getApplicationInfo(app, 0)).toString(); } catch (PackageManager.NameNotFoundException ignored) { }
+        android.content.SharedPreferences sources = getSharedPreferences("sources", MODE_PRIVATE);
+        sources.edit().putString(posted.getPackageName(), app).apply();
+        android.content.SharedPreferences filters = getSharedPreferences("filters", MODE_PRIVATE);
+        if (filters.getBoolean("selected_only", false) && !filters.getBoolean("app:" + posted.getPackageName(), false)) return;
         String titleText = title == null ? "" : title.toString();
         String contentText = content == null ? "" : content.toString();
+        String keywords = filters.getString("keywords", "");
+        String searchable = (titleText + "\n" + contentText).toLowerCase(java.util.Locale.ROOT);
+        boolean hasKeyword = false, matchesKeyword = false;
+        for (String keyword : keywords.split("[,\n]")) {
+            String trimmed = keyword.trim().toLowerCase(java.util.Locale.ROOT);
+            if (!trimmed.isEmpty()) { hasKeyword = true; if (searchable.contains(trimmed)) matchesKeyword = true; }
+        }
+        if (hasKeyword && !matchesKeyword) return;
         String fingerprint = titleText + "\n" + contentText;
         synchronized (recent) { if (fingerprint.equals(recent.put(posted.getKey(), fingerprint))) return; }
         StringBuilder text = new StringBuilder(app).append("\n").append(DateFormat.getDateTimeInstance().format(new Date(posted.getPostTime())));

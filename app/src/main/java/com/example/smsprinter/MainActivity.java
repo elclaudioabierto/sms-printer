@@ -18,7 +18,7 @@ public final class MainActivity extends Activity {
     private static final String USB_PERMISSION = "com.example.smsprinter.USB_PERMISSION";
     private static final int BLACK = Color.BLACK, WHITE = Color.WHITE;
     private UsbManager usb;
-    private LinearLayout devices;
+    private LinearLayout devices, appFilters;
     private TextView accessValue, printerValue, queueValue;
     private final BroadcastReceiver permissionReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
@@ -74,7 +74,46 @@ public final class MainActivity extends Activity {
         page.addView(accessHelp, marginBottom(14));
         page.addView(action("ENABLE NOTIFICATIONS   ↗", true, () -> startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))), matchWrap());
 
-        section(page, "03", "PRINTER");
+        section(page, "03", "APP FILTER");
+        TextView filterHelp = body("Choose which apps can print. Apps appear here after they send a notification.");
+        page.addView(filterHelp, marginBottom(14));
+        Switch selectedOnly = new Switch(this);
+        selectedOnly.setText("PRINT SELECTED APPS ONLY");
+        selectedOnly.setThumbTintList(android.content.res.ColorStateList.valueOf(BLACK));
+        selectedOnly.setTrackTintList(android.content.res.ColorStateList.valueOf(0xffaaaaaa));
+        selectedOnly.setTextColor(BLACK);
+        selectedOnly.setTextSize(14);
+        selectedOnly.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
+        selectedOnly.setPadding(dp(12), dp(12), dp(12), dp(12));
+        selectedOnly.setBackground(border(WHITE, BLACK, 2));
+        selectedOnly.setChecked(getSharedPreferences("filters", 0).getBoolean("selected_only", false));
+        selectedOnly.setOnCheckedChangeListener((button, checked) -> { getSharedPreferences("filters", 0).edit().putBoolean("selected_only", checked).apply(); refresh(); });
+        page.addView(selectedOnly, matchWrap());
+        appFilters = column();
+        LinearLayout.LayoutParams appParams = matchWrap(); appParams.setMargins(0, dp(8), 0, 0);
+        page.addView(appFilters, appParams);
+        page.addView(action("REFRESH APP LIST   ↻", false, this::refresh), matchWrap());
+        TextView filterNote = label("WHEN OFF, ALL APPS CAN PRINT.", 11, BLACK, false);
+        filterNote.setTypeface(Typeface.MONOSPACE);
+        page.addView(filterNote, marginBottom(4));
+
+        section(page, "04", "KEYWORD FILTER");
+        TextView keywordHelp = body("Print only notifications containing any of these words or phrases. Separate them with commas. Leave blank to print all text.");
+        page.addView(keywordHelp, marginBottom(14));
+        EditText keywordInput = new EditText(this);
+        keywordInput.setTextColor(BLACK); keywordInput.setHintTextColor(0xff666666);
+        keywordInput.setTextSize(15); keywordInput.setSingleLine(false); keywordInput.setMinLines(2);
+        keywordInput.setPadding(dp(12), dp(12), dp(12), dp(12)); keywordInput.setBackground(border(WHITE, BLACK, 2));
+        keywordInput.setHint("urgent, dinner, call me");
+        keywordInput.setText(getSharedPreferences("filters", 0).getString("keywords", ""));
+        keywordInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence value, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence value, int start, int before, int count) { getSharedPreferences("filters", 0).edit().putString("keywords", value.toString()).apply(); }
+            @Override public void afterTextChanged(android.text.Editable value) { }
+        });
+        page.addView(keywordInput, matchWrap());
+
+        section(page, "05", "PRINTER");
         TextView usbHelp = body("Connect a powered ESC/POS printer by USB. Select it below and approve the connection.");
         page.addView(usbHelp, marginBottom(14));
         page.addView(action("SCAN USB DEVICES   ↻", false, this::refresh), matchWrap());
@@ -82,7 +121,7 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams deviceParams = matchWrap(); deviceParams.setMargins(0, dp(8), 0, 0);
         page.addView(devices, deviceParams);
 
-        section(page, "04", "OUTPUT");
+        section(page, "06", "OUTPUT");
         page.addView(action("PRINT TEST PAGE   →", true, () -> Work.executor.execute(() -> {
             boolean ok = Printer.print(getApplicationContext(), "NOTIFICATION PRINTER\n\nTEST PAGE\n\nIf you can read this, your printer is connected.\n");
             runOnUiThread(() -> { toast(ok ? "TEST SENT TO PRINTER" : "PRINT FAILED. CHECK USB CONNECTION."); refresh(); });
@@ -107,6 +146,23 @@ public final class MainActivity extends Activity {
         accessValue.setText(enabled ? "ON" : "OFF");
         printerValue.setText(selected == null ? "OFFLINE" : (usb.hasPermission(selected) ? "READY" : "APPROVE"));
         queueValue.setText(String.format(java.util.Locale.ROOT, "%02d", count));
+        appFilters.removeAllViews();
+        java.util.Map<String, ?> known = getSharedPreferences("sources", 0).getAll();
+        java.util.ArrayList<String> packages = new java.util.ArrayList<>(known.keySet());
+        java.util.Collections.sort(packages, (a, b) -> String.valueOf(known.get(a)).compareToIgnoreCase(String.valueOf(known.get(b))));
+        if (packages.isEmpty()) {
+            TextView empty = label("NO APPS SEEN YET. SEND A NOTIFICATION, THEN REOPEN THIS SCREEN.", 11, BLACK, false);
+            empty.setTypeface(Typeface.MONOSPACE); empty.setPadding(dp(2), dp(8), 0, dp(8)); appFilters.addView(empty);
+        }
+        for (String pkg : packages) {
+            CheckBox check = new CheckBox(this);
+            check.setText(String.valueOf(known.get(pkg)) + "  /  " + pkg);
+            check.setButtonTintList(android.content.res.ColorStateList.valueOf(BLACK));
+            check.setTextColor(BLACK); check.setTextSize(13); check.setPadding(dp(8), dp(6), dp(8), dp(6));
+            check.setChecked(getSharedPreferences("filters", 0).getBoolean("app:" + pkg, false));
+            check.setOnCheckedChangeListener((button, checked) -> getSharedPreferences("filters", 0).edit().putBoolean("app:" + pkg, checked).apply());
+            appFilters.addView(check, matchWrap());
+        }
         devices.removeAllViews();
         ArrayList<UsbDevice> available = new ArrayList<>(usb.getDeviceList().values());
         if (available.isEmpty()) {
