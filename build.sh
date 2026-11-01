@@ -8,7 +8,8 @@ tools="$ANDROID_HOME/build-tools/35.0.0"
 platform="$ANDROID_HOME/platforms/android-35/android.jar"
 rm -rf build
 mkdir -p build/classes build/dex
-"$tools/aapt2" link -I "$platform" --manifest app/src/main/AndroidManifest.xml -o build/base.apk
+"$tools/aapt2" compile --dir app/src/main/res -o build/resources.zip
+"$tools/aapt2" link -I "$platform" --manifest app/src/main/AndroidManifest.xml -o build/base.apk build/resources.zip
 javac -encoding UTF-8 --release 8 -classpath "$platform" -d build/classes $(find app/src/main/java -name '*.java')
 "$tools/d8" --min-api 26 --lib "$platform" --output build/dex $(find build/classes -name '*.class')
 cp build/base.apk build/unsigned.apk
