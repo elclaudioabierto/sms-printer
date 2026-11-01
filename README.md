@@ -2,6 +2,17 @@
 
 A local-only Android prototype for printing incoming SMS on a USB ESC/POS thermal printer. Requires Android 8 or later and USB host support. SMS, not MMS, RCS, Signal or WhatsApp.
 
+## SMS permission is grayed out
+
+Some Android installers restrict SMS access when installing an APK downloaded in a browser. The same APK can be installed from a computer with [Android Platform Tools](https://developer.android.com/tools/releases/platform-tools). Enable USB debugging, connect the phone, approve the computer on the phone, then run:
+
+```sh
+adb devices
+adb install -r -g sms-printer-debug.apk
+```
+
+Run the install command in the directory containing the downloaded APK (or provide its path). The `-g` option grants the app's requested runtime permissions, including SMS. Only do this if you trust the app. Confirm the app shows **SMS access: allowed**. This procedure was verified on the original target phone. Android device policies and installers can differ.
+
 ## Setup
 
 1. Install `build/sms-printer-debug.apk` on the phone. This is a debug build, intended for private testing.
