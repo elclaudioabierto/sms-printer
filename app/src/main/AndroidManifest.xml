@@ -1,15 +1,14 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.smsprinter" android:versionCode="1" android:versionName="1.0">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.smsprinter" android:versionCode="2" android:versionName="2.0">
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35" />
     <uses-feature android:name="android.hardware.usb.host" android:required="true" />
-    <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <application android:label="SMS Printer" android:allowBackup="false" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:usesCleartextTraffic="false">
+    <application android:label="Notification Printer" android:allowBackup="false" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:usesCleartextTraffic="false">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
-        <receiver android:name=".SmsReceiver" android:exported="true" android:permission="android.permission.BROADCAST_SMS">
-            <intent-filter><action android:name="android.provider.Telephony.SMS_RECEIVED"/></intent-filter>
-        </receiver>
+        <service android:name=".NotificationReceiver" android:label="Notification Printer" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" android:exported="true">
+            <intent-filter><action android:name="android.service.notification.NotificationListenerService"/></intent-filter>
+        </service>
         <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/></intent-filter>
         </receiver>

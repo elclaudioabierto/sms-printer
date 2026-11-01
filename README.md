@@ -1,25 +1,17 @@
-# SMS Printer
+# Notification Printer
 
-A local-only Android prototype for printing incoming SMS on a USB ESC/POS thermal printer. Requires Android 8 or later and USB host support. SMS, not MMS, RCS, Signal or WhatsApp.
-
-## SMS permission is grayed out
-
-Some Android installers restrict SMS access when installing an APK downloaded in a browser. The same APK can be installed from a computer with [Android Platform Tools](https://developer.android.com/tools/releases/platform-tools). Enable USB debugging, connect the phone, approve the computer on the phone, then run:
-
-```sh
-adb devices
-adb install -r -g sms-printer-debug.apk
-```
-
-Run the install command in the directory containing the downloaded APK (or provide its path). The `-g` option grants the app's requested runtime permissions, including SMS. Only do this if you trust the app. Confirm the app shows **SMS access: allowed**. This procedure was verified on the original target phone. Android device policies and installers can differ.
+Android prototype that prints notification text from apps to a USB ESC/POS thermal printer. It can print notifications from SMS, Signal, WhatsApp and other apps when Android delivers readable notification text. It does not read messages directly. Android or the source app may hide, group, redact or omit notification content; some notifications may not be delivered. Test each app and phone.
 
 ## Setup
 
-1. Install `build/sms-printer-debug.apk` on the phone. This is a debug build, intended for private testing.
-2. Connect the powered printer via USB OTG. Open SMS Printer, allow SMS access, choose the printer, and grant USB access.
-3. Print a test page. Send an SMS from another phone and verify it prints with the screen off.
-4. Leave phone and printer powered and connected. Check paper and run an extended test before relying on it. After a USB reconnect or reboot, Android may require permission again; open the app and reconnect if needed.
+1. Install the APK from the GitHub release on a phone running Android 8 or later with USB host support. The package retains the original `com.example.smsprinter` ID so it can update an existing installation.
+2. Open Notification Printer, tap **Allow notification access**, and enable Notification Printer in Android settings. Android may require **Settings → Apps → Notification Printer → ⋮ → Allow restricted settings** for an app downloaded outside an app store before enabling notification access. The exact steps depend on the phone.
+3. Connect the powered printer via USB OTG, tap **Find USB printers**, choose the printer and grant USB access. Print a test page.
+4. Send test notifications from each app, including with the screen off. Ensure notifications and their content are enabled in the source app and phone settings.
+5. Leave phone and printer powered and connected. After a USB reconnect or reboot, Android may require USB permission again. Check paper and test for an extended period before relying on it.
 
-The app keeps pending messages in a private database and retries periodically while Android allows background jobs. It deletes a message after data is sent to the printer, which does not prove it physically printed. A partial USB failure can cause a duplicate on retry. Battery optimization, USB host/charging support, ESC/POS variants and device-specific behavior may affect reliability. Printed messages are visible on paper. Messages are not uploaded.
+Notification access can reveal sensitive information, including message content and verification codes. Notifications from all apps may be printed, including status notifications; keep paper secure. This app stores notifications locally until sent to the printer and does not upload them. It suppresses repeated notification updates with identical title and text while they remain active; updated text may print again. Android can restart the listener, in which case repeat suppression resets.
+
+The app retries queued notifications periodically when Android permits background jobs. It removes a notification after data is sent to the printer, which does not prove it physically printed. A partial USB failure can cause a duplicate on retry. Battery optimization, USB host and charging support, ESC/POS variants, and device-specific behavior can affect reliability. USB permission may need to be granted again after reconnecting.
 
 Build locally with `./build.sh` using Android SDK 35, Build Tools 35.0.0, and JDK 17. An Android debug signing key is generated in `~/.android/debug.keystore` if absent.

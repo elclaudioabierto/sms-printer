@@ -50,14 +50,18 @@ final class Printer {
     private static byte[] raster(String text) {
         final int width = 576;
         TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG); paint.setColor(Color.BLACK); paint.setTextSize(27);
-        StaticLayout layout = StaticLayout.Builder.obtain(text, 0, text.length(), paint, width - 32).setAlignment(Layout.Alignment.ALIGN_NORMAL).setIncludePad(true).build();
+        StaticLayout layout = StaticLayout.Builder.obtain(text, 0, text.length(), paint, width - 64).setAlignment(Layout.Alignment.ALIGN_NORMAL).setIncludePad(true).build();
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         bytes.write(0x1b); bytes.write(0x40);
-        int totalHeight = layout.getHeight() + 32;
+        int totalHeight = layout.getHeight() + 64;
         for (int top = 0; top < totalHeight; top += 256) {
             int height = Math.min(256, totalHeight - top);
             Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(bitmap); canvas.drawColor(Color.WHITE); canvas.translate(16, 16 - top); layout.draw(canvas);
+            Canvas canvas = new Canvas(bitmap); canvas.drawColor(Color.WHITE);
+            canvas.translate(0, -top);
+            Paint border = new Paint(); border.setColor(Color.BLACK); border.setStyle(Paint.Style.STROKE); border.setStrokeWidth(3);
+            canvas.drawRect(8, 8, width - 9, totalHeight - 9, border);
+            canvas.translate(32, 32); layout.draw(canvas);
             bytes.write(0x1d); bytes.write(0x76); bytes.write(0x30); bytes.write(0);
             bytes.write(width / 8); bytes.write(0); bytes.write(height & 255); bytes.write(height >> 8);
             int[] row = new int[width];
