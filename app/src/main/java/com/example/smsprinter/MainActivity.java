@@ -51,7 +51,17 @@ public final class MainActivity extends Activity {
     private void show(String destination) {
         screen = destination;
         ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true); scroll.setBackgroundColor(WHITE);
-        page = column(); page.setPadding(dp(16), dp(16), dp(16), dp(32)); scroll.addView(page); setContentView(scroll);
+        page = column(); page.setPadding(dp(16), dp(16), dp(16), dp(32)); scroll.addView(page);
+        if (android.os.Build.VERSION.SDK_INT >= 35) {
+            // Android 15 draws system bars over app content; give them a black backdrop.
+            LinearLayout frame = column(); frame.setBackgroundColor(BLACK);
+            frame.setOnApplyWindowInsetsListener((view, insets) -> {
+                android.graphics.Insets bars = insets.getInsets(android.view.WindowInsets.Type.systemBars() | android.view.WindowInsets.Type.displayCutout());
+                view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+                return insets;
+            });
+            frame.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1)); setContentView(frame);
+        } else setContentView(scroll);
         switch (destination) {
             case "setup": setup(); break;
             case "apps": apps(); break;
