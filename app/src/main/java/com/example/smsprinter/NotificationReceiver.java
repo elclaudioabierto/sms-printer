@@ -31,6 +31,8 @@ public final class NotificationReceiver extends NotificationListenerService {
         if (filters.getBoolean("selected_only", false) && !filters.getBoolean("app:" + posted.getPackageName(), false)) return;
         String titleText = title == null ? "" : title.toString();
         String contentText = content == null ? "" : content.toString();
+        String code = filters.getString("secret_code", "").trim();
+        if (!code.isEmpty() && !contentText.trim().toLowerCase(java.util.Locale.ROOT).startsWith(code.toLowerCase(java.util.Locale.ROOT))) return;
         String keywords = filters.getString("keywords", "");
         String searchable = (titleText + "\n" + contentText).toLowerCase(java.util.Locale.ROOT);
         boolean hasKeyword = false, matchesKeyword = false;
@@ -41,10 +43,20 @@ public final class NotificationReceiver extends NotificationListenerService {
         if (hasKeyword && !matchesKeyword) return;
         String fingerprint = titleText + "\n" + contentText;
         synchronized (recent) { if (fingerprint.equals(recent.put(posted.getKey(), fingerprint))) return; }
-        StringBuilder text = new StringBuilder(app).append("\n").append(DateFormat.getDateTimeInstance().format(new Date(posted.getPostTime())));
+        boolean priority = false;
+        for (String word : filters.getString("priority_words", "urgent, emergency").split("[,\n]")) {
+            String trimmed = word.trim().toLowerCase(java.util.Locale.ROOT);
+            if (!trimmed.isEmpty() && searchable.contains(trimmed)) { priority = true; break; }
+        }
+        String header = filters.getString("print_header", "INCOMING TELEGRAM").trim();
+        StringBuilder text = new StringBuilder();
+        if (priority) text.append("!!! PRIORITY !!!\n");
+        if (!header.isEmpty()) text.append(header).append("\n");
+        text.append(app).append("\n").append(DateFormat.getDateTimeInstance().format(new Date(posted.getPostTime())));
         if (!titleText.isEmpty()) text.append("\n\n").append(titleText);
         if (!contentText.isEmpty() && !contentText.equals(titleText)) text.append("\n").append(contentText);
         if (titleText.isEmpty() && contentText.isEmpty()) text.append("\n\n(Notification has no readable text)");
+        if (filters.getBoolean("tiny_art", true)) text.append("\n\n   *  .  *\n  .  [#]  .\n   *  .  *");
         Context appContext = getApplicationContext();
         Work.executor.execute(() -> { try (Queue q = new Queue(appContext)) { q.add(text.toString()); q.drain(appContext); } });
     }

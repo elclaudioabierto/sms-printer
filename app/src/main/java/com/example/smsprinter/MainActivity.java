@@ -113,7 +113,24 @@ public final class MainActivity extends Activity {
         });
         page.addView(keywordInput, matchWrap());
 
-        section(page, "05", "PRINTER");
+        section(page, "05", "SECRET CODE");
+        page.addView(body("Optional: only print when the notification text starts with this code. Leave blank to turn it off."), marginBottom(14));
+        page.addView(preferenceInput("secret_code", "", "e.g. #print"), matchWrap());
+
+        section(page, "06", "PRINT STYLE");
+        page.addView(body("Give every printout a heading. Messages containing a priority word get a bold alert and heavier border."), marginBottom(14));
+        page.addView(label("CUSTOM HEADER", 12, BLACK, true), marginBottom(6));
+        page.addView(preferenceInput("print_header", "INCOMING TELEGRAM", "Your header"), marginBottom(14));
+        page.addView(label("PRIORITY WORDS / COMMA SEPARATED", 12, BLACK, true), marginBottom(6));
+        page.addView(preferenceInput("priority_words", "urgent, emergency", "urgent, emergency"), marginBottom(14));
+        CheckBox art = new CheckBox(this);
+        art.setButtonTintList(android.content.res.ColorStateList.valueOf(BLACK));
+        art.setTextColor(BLACK); art.setText("ADD TINY ART"); art.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
+        art.setChecked(getSharedPreferences("filters", 0).getBoolean("tiny_art", true));
+        art.setOnCheckedChangeListener((button, checked) -> getSharedPreferences("filters", 0).edit().putBoolean("tiny_art", checked).apply());
+        page.addView(art, matchWrap());
+
+        section(page, "07", "PRINTER");
         TextView usbHelp = body("Connect a powered ESC/POS printer by USB. Select it below and approve the connection.");
         page.addView(usbHelp, marginBottom(14));
         page.addView(action("SCAN USB DEVICES   ↻", false, this::refresh), matchWrap());
@@ -121,7 +138,7 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams deviceParams = matchWrap(); deviceParams.setMargins(0, dp(8), 0, 0);
         page.addView(devices, deviceParams);
 
-        section(page, "06", "OUTPUT");
+        section(page, "08", "OUTPUT");
         page.addView(action("PRINT TEST PAGE   →", true, () -> Work.executor.execute(() -> {
             boolean ok = Printer.print(getApplicationContext(), "NOTIFICATION PRINTER\n\nTEST PAGE\n\nIf you can read this, your printer is connected.\n");
             runOnUiThread(() -> { toast(ok ? "TEST SENT TO PRINTER" : "PRINT FAILED. CHECK USB CONNECTION."); refresh(); });
@@ -188,6 +205,17 @@ public final class MainActivity extends Activity {
         TextView view = new TextView(this); view.setText(text); view.setTextSize(size); view.setTextColor(color);
         if (bold) view.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
         view.setIncludeFontPadding(false); return view;
+    }
+    private EditText preferenceInput(String key, String defaultValue, String hint) {
+        EditText input = new EditText(this); input.setTextColor(BLACK); input.setHintTextColor(0xff666666); input.setTextSize(15);
+        input.setSingleLine(true); input.setPadding(dp(12), dp(12), dp(12), dp(12)); input.setBackground(border(WHITE, BLACK, 2));
+        input.setHint(hint); input.setText(getSharedPreferences("filters", 0).getString(key, defaultValue));
+        input.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence value, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence value, int start, int before, int count) { getSharedPreferences("filters", 0).edit().putString(key, value.toString()).apply(); }
+            @Override public void afterTextChanged(android.text.Editable value) { }
+        });
+        return input;
     }
     private TextView body(String text) { TextView view = label(text, 14, BLACK, false); view.setLineSpacing(dp(3), 1); return view; }
     private void section(LinearLayout parent, String number, String title) {

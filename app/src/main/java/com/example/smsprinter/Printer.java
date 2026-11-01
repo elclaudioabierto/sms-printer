@@ -50,7 +50,14 @@ final class Printer {
     private static byte[] raster(String text) {
         final int width = 576;
         TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG); paint.setColor(Color.BLACK); paint.setTextSize(27);
-        StaticLayout layout = StaticLayout.Builder.obtain(text, 0, text.length(), paint, width - 64).setAlignment(Layout.Alignment.ALIGN_NORMAL).setIncludePad(true).build();
+        android.text.SpannableString styled = new android.text.SpannableString(text);
+        int firstLine = text.indexOf('\n');
+        if (firstLine < 0) firstLine = text.length();
+        if (firstLine > 0) {
+            styled.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, firstLine, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            styled.setSpan(new android.text.style.RelativeSizeSpan(1.35f), 0, firstLine, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        StaticLayout layout = StaticLayout.Builder.obtain(styled, 0, styled.length(), paint, width - 64).setAlignment(Layout.Alignment.ALIGN_NORMAL).setIncludePad(true).build();
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         bytes.write(0x1b); bytes.write(0x40);
         int totalHeight = layout.getHeight() + 64;
@@ -59,7 +66,7 @@ final class Printer {
             Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bitmap); canvas.drawColor(Color.WHITE);
             canvas.translate(0, -top);
-            Paint border = new Paint(); border.setColor(Color.BLACK); border.setStyle(Paint.Style.STROKE); border.setStrokeWidth(3);
+            Paint border = new Paint(); border.setColor(Color.BLACK); border.setStyle(Paint.Style.STROKE); border.setStrokeWidth(text.startsWith("!!! PRIORITY !!!") ? 7 : 3);
             canvas.drawRect(8, 8, width - 9, totalHeight - 9, border);
             canvas.translate(32, 32); layout.draw(canvas);
             bytes.write(0x1d); bytes.write(0x76); bytes.write(0x30); bytes.write(0);
